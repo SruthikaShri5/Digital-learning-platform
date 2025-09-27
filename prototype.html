@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Digital Learning Platform - Nabha (Prototype)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{
+    --accent:#ff6f61;
+    --accent-2:#6f86d6;
+    --card:#ffffffcc;
+    --glass: rgba(255,255,255,0.6);
+    --shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: radial-gradient(circle at 10% 10%, #ffe29f, transparent 20%),
+                linear-gradient(135deg,#a18cd1 0%, #fbc2eb 100%);
+    min-height:100vh; color:#222; overflow-x:hidden;
+  }
+
+  header{
+    background: linear-gradient(90deg,var(--accent),var(--accent-2));
+    color:white; padding:18px 12px; text-align:center; font-size:22px; font-weight:700;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  }
+
+  /* page layout & animated transitions */
+  .screen{ display:none; padding:22px; min-height:calc(100vh - 72px); align-items:flex-start; justify-content:center; animation:fadeIn 500ms ease; }
+  .screen.active{ display:flex; flex-direction:column; gap:18px; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)} }
+  .container{ max-width:1000px; margin:0 auto; width:100%; }
+
+  /* card */
+  .card{ background:var(--card); border-radius:14px; padding:18px; box-shadow:var(--shadow); }
+  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .col{ flex:1; min-width:220px; }
+
+  /* inputs/buttons */
+  input,select,textarea,button{ font-size:15px; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.08); outline:none; }
+  textarea{ min-height:100px; resize:vertical; }
+  .btn{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:white; border:none; cursor:pointer; padding:12px 16px; box-shadow: 0 8px 18px rgba(0,0,0,0.12); border-radius:10px; transition:transform .18s ease; }
+  .btn:hover{ transform:translateY(-3px); }
+  .btn-ghost{ background:transparent; border:1px solid rgba(0,0,0,0.08); color:#333; }
+
+  /* big headline & subtitle */
+  .hero{ text-align:center; color:#123; }
+  .hero h1{ margin:8px 0; font-size:28px; }
+  .hero p{ margin:0;color:#333; opacity:0.85; }
+
+  /* language buttons */
+  .langs{ display:flex; gap:10px; justify-content:center; margin-top:6px; }
+  .lang{ padding:10px 18px; border-radius:999px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.08); cursor:pointer; }
+
+  /* navigation mini */
+  .mini-nav{ display:flex; gap:8px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+
+  /* subject / topic grid */
+  .grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:12px; }
+  .tile{ background:linear-gradient(180deg,#ffffffcc,#ffffffaa); border-radius:12px; padding:14px; text-align:center; cursor:pointer; transition:transform .2s ease, box-shadow .2s; }
+  .tile:hover{ transform:translateY(-6px); box-shadow: 0 12px 24px rgba(0,0,0,0.12); }
+  .tile .emoji{ font-size:42px; display:block; margin-bottom:8px; }
+
+  /* video */
+  video{ width:100%; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.14); background:#000; }
+
+  /* quiz area */
+  .quiz-area{ display:flex; flex-direction:column; gap:12px; align-items:center; }
+  .question{ font-weight:700; font-size:20px; background:linear-gradient(90deg,#fff7cc,#fff1e0); padding:12px 16px; border-radius:10px; width:100%; text-align:left; }
+  .options{ display:flex; flex-direction:column; gap:8px; width:100%; }
+  .option{ padding:12px; border-radius:10px; background:#ffffff; border:1px solid rgba(0,0,0,0.06); cursor:pointer; transition:all .15s; text-align:left; }
+  .option:hover{ transform:translateY(-4px); box-shadow:0 8px 18px rgba(0,0,0,0.06); }
+  .option.selected{ background:linear-gradient(90deg,#a8e6cf,#dcedc1); border-color:#6fbf73; }
+  .option.correct{ background:linear-gradient(90deg,#ffd49b,#ffeca6); border-color:#e89a00; }
+  .option.wrong{ background:linear-gradient(90deg,#ffd1d1,#ffd6d6); border-color:#d14b4b; }
+
+  /* small controls */
+  .controls{ display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .back-btn{ position:relative; left:0; }
+
+  /* leaderboard */
+  .leaderboard ol{ padding-left:18px; text-align:left; }
+  .small{ font-size:13px; color:#444; opacity:0.9; }
+
+  /* voice assistant */
+  .voice-btn{ padding:8px 10px; border-radius:10px; background:linear-gradient(90deg,#ffd54f,#ffb74d); color:#333; border:none; cursor:pointer; }
+
+  /* cartoon box */
+  .cartoon{ display:flex; gap:12px; align-items:center; justify-content:center; }
+  .cartoon .face{ font-size:64px; transform:translateY(0); animation:bounce 2s infinite; }
+  @keyframes bounce{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-8px)} }
+
+  /* responsive tweaks */
+  @media (max-width:720px){
+    .row{ flex-direction:column; }
+    .col{ min-width:0; }
+  }
+
+  /* animated page transitions between screens (fade+slide) */
+  .screen.animate-out{ animation: fadeOut .28s forwards; }
+  @keyframes fadeOut { from{ opacity:1; transform:translateY(0)} to{ opacity:0; transform:translateY(-8px)} }
+
+  /* footer */
+  footer{ text-align:center; padding:12px; color:#333; opacity:0.85; }
+</style>
+</head>
+<body>
+<header>🌾 DIGITAL LEARNING PLATFORM — Nabha </header>
+<h2><center> डिजिटल लर्निंग प्लेटफ़ॉर्म </h2>
+<!-- MAIN SCREENS (one-file multi-page app) -->
+<!-- 1. Motivational Quote -->
+<div id="screen-quote" class="screen active">
+  <div class="container card hero">
+    <h1 id="quoteText">“Knowledge lights the path from poverty to possibility.”</h1>
+    <p class="small">— For students of Nabha —</p>
+    <div style="margin-top:16px" class="cartoon">
+      <!-- cartoon for welcoming -->
+      <div style="text-align:center;">
+        <div class="face">🧑‍🏫</div>
+        <div class="small">Welcome! Let's learn together ✨</div>
+      </div>
+    </div>
+    <div style="margin-top:18px;">
+      <button class="btn" onclick="goTo('screen-lang')">Start (शुरू करें)</button>
+      <button class="btn btn-ghost" onclick="toggleQuote()">Random Quote</button>
+    </div>
+    <div style="margin-top:12px;" class="small">Tip: Choose the language you prefer on the next screen. UI will adapt.</div>
+  </div>
+</div>
+
+<!-- 2. Language selection -->
+<div id="screen-lang" class="screen">
+  <div class="container card">
+    <h2>Select Language / भाषा चुनें / ਭਾਸ਼ਾ ਚੁਣੋ</h2>
+    <div class="langs">
+      <div class="lang" onclick="setLang('en')">English</div>
+      <div class="lang" onclick="setLang('hi')">हिन्दी</div>
+      <div class="lang" onclick="setLang('pa')">ਪੰਜਾਬੀ</div>
+    </div>
+    <div style="margin-top:16px; text-align:center;">
+      <button class="btn" onclick="goTo('screen-login')">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Login -->
+<div id="screen-login" class="screen">
+  <div class="container card">
+    <h2 id="loginTitle">Login</h2>
+    <div class="row">
+      <div class="col">
+        <input id="inputId" placeholder="Enter Student/Teacher/Parent ID (eg: S001 / T01 / P001)">
+      </div>
+      <div class="col">
+        <select id="selectRole">
+          <option value="">-- Select Role --</option>
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="parent">Parent</option>
+        </select>
+      </div>
+      <div class="col">
+        <select id="selectClass">
+          <option value="">-- Select Class --</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
+      <button class="btn" onclick="doLogin()">Login</button>
+      <button class="btn btn-ghost" onclick="goTo('screen-lang')">Back</button>
+    </div>
+    <p class="small" style="text-align:center; margin-top:10px;">(Teacher/Parent logins are simulated)</p>
+  </div>
+</div>
+
+<!-- 4. Student Dashboard -->
+<div id="screen-student" class="screen">
+  <div class="container">
+    <div class="card row" style="align-items:center; justify-content:space-between;">
+      <div>
+        <h2 id="studentWelcome">Welcome, Student</h2>
+        <div class="small" id="studentInfo"></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="voice-btn" id="voiceToggle" onclick="toggleVoice()">🔊 Voice</button>
+        <button class="btn btn-ghost" onclick="goTo('screen-login')">Logout</button>
+      </div>
+    </div>
+
+    <!-- subject selection -->
+    <div class="card">
+      <h3>Select Subject</h3>
+      <div id="subjectGrid" class="grid"></div>
+    </div>
+
+    <!-- topics (after subject chosen) -->
+    <div id="topicsCard" class="card" style="display:none;">
+      <h3 id="topicTitle">Topics</h3>
+      <div id="topicsGrid" class="grid"></div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-ghost" onclick="goBack('screen-student')">Back</button>
+      </div>
+    </div>
+
+    <!-- recent leaderboard & doubts -->
+    <div class="row" style="margin-top:12px;">
+      <div class="col card">
+        <h4>Leaderboard</h4>
+        <div id="leaderboardBox" class="small"></div>
+      </div>
+      <div class="col card">
+        <h4>Ask Doubt</h4>
+        <textarea id="doubtText" placeholder="Type your doubt in your language..."></textarea>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn" onclick="submitDoubt()">Submit Doubt</button>
+          <button class="btn btn-ghost" onclick="renderDoubts()">View Doubts</button>
+        </div>
+        <div id="doubtArea" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Video + topic page -->
+<div id="screen-video" class="screen">
+  <div class="container card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h2 id="videoTitle">Topic Video</h2>
+        <div id="videoMeta" class="small"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="voice-btn" onclick="toggleVoice()">🔊 Voice</button>
+        <button class="btn btn-ghost" onclick="goBack('screen-student')">Back</button>
+      </div>
+    </div>
+
+    <div id="videoWrap" style="margin-top:12px;">
+      <video id="player" controls>
+        <source id="playerSrc" src="" type="video/mp4">
+        Your browser does not support video.
+      </video>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+        <button class="btn" onclick="startQuiz()">Start Quiz</button>
+        <button class="btn btn-ghost" onclick="downloadSample()">Download (demo)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Quiz Pages (container — pages generated dynamically) -->
+<div id="screen-quiz" class="screen">
+  <div class="container card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h2 id="quizTitle">Quiz</h2>
+        <div class="small" id="quizMeta"></div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="voice-btn" onclick="toggleVoice()">🔊 Voice</button>
+        <button class="btn btn-ghost" onclick="confirmExitQuiz()">Quit</button>
+      </div>
+    </div>
+
+    <div id="quizContainer" style="margin-top:12px;"></div>
+
+    <div class="controls">
+      <button class="btn btn-ghost" id="quizPrev" onclick="quizPrev()">Back</button>
+      <button class="btn" id="quizNext" onclick="quizNext()">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Leaderboard screen -->
+<div id="screen-leaderboard" class="screen">
+  <div class="container card">
+    <h2>🏆 Leaderboard</h2>
+    <div id="leaderboardList"></div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="goBack('screen-student')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Teacher Dashboard -->
+<div id="screen-teacher" class="screen">
+  <div class="container">
+    <div class="card">
+      <h2>Teacher Dashboard (Demo)</h2>
+      <div class="row">
+        <div class="col">
+          <input id="teachVideoFile" type="file" accept="video/*">
+          <div style="margin-top:8px;">
+            <input id="teachVideoTitle" placeholder="Video Title">
+            <select id="teachClass">
+              <option value="">Select Class</option>
+            </select>
+            <select id="teachSubject"><option value="">Select Subject</option></select>
+            <button class="btn" onclick="teacherUpload()">Upload Video</button>
+          </div>
+        </div>
+
+        <div class="col">
+          <h4>Create Quiz for Topic</h4>
+          <input id="quizQText" placeholder="Question text"><br>
+          <input id="quizOptA" placeholder="Option A"><br>
+          <input id="quizOptB" placeholder="Option B"><br>
+          <input id="quizOptC" placeholder="Option C"><br>
+          <input id="quizOptD" placeholder="Option D"><br>
+          <select id="quizCorrect">
+            <option value="">Correct Option</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+          </select><br>
+          <button class="btn" onclick="teacherSaveQuiz()">Save Question</button>
+          <div id="teacherMsg" class="small" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="goTo('screen-login')">Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- 9. Parent Dashboard -->
+<div id="screen-parent" class="screen">
+  <div class="container card">
+    <h2>Parent Dashboard (Demo)</h2>
+    <div id="parentProgress" class="small"></div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="goTo('screen-login')">Logout</button>
+    </div>
+  </div>
+</div>
+
+<footer class="small">Prototype — use for Smart India Hackathon demo • All data stored locally in browser</footer>
+
+<script>
+/* -------------------------
+   App Data & Initialization
+   ------------------------- */
+const i18n = {
+  en: {
+    welcome: "Welcome to Nabha Learning",
+    login: "Login",
+    quoteList: [
+      "Education is the most powerful weapon which you can use to change the world.",
+      "Learning is a treasure that will follow its owner everywhere.",
+      "Small steps each day lead to big changes."
+    ],
+    motivational: "Keep going — you are doing great!"
+  },
+  hi: {
+    welcome: "नाभा लर्निंग में आपका स्वागत है",
+    login: "लॉगिन",
+    quoteList:[
+      "शिक्षा सबसे शक्तिशाली हथियार है जिससे आप दुनिया बदल सकते हैं।",
+      "सीखना एक खज़ाना है जो हर जगह साथ चलता है।",
+      "हर दिन छोटे कदम, बड़ी प्रगति लाते हैं।"
+    ],
+    motivational: "लगातार पढ़ते रहें — आप उत्कृष्ट कर रहे हैं!"
+  },
+  pa: {
+    welcome: "ਨਭਾ ਲਰਨਿੰਗ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ",
+    login: "ਲਾਗਇਨ",
+    quoteList:[
+      "ਸਿੱਖਿਆ ਸਭ ਤੋਂ ਤਾਕਤਵਰ ਹਥਿਆਰ ਹੈ ਜਿਸ ਨਾਲ ਤੁਸੀਂ ਦੁਨੀਆ ਬਦਲ ਸਕਦੇ ਹੋ।",
+      "ਸਿੱਖਣਾ ਇੱਕ ਖਜਾਨਾ ਹੈ ਜੋ ਸਦਾ ਨਾਲ ਰਹਿੰਦਾ ਹੈ।",
+      "ਹਰੇਕ ਦਿਨ ਦੇ ਛੋਟੇ ਕਦਮ ਵੱਡਾ ਫਲ ਲਿਆਉਂਦੇ ਹਨ।"
+    ],
+    motivational: "ਸਿੱਖਣਾ ਜਾਰੀ ਰੱਖੋ — ਤੁਸੀਂ ਬਹੁਤ ਚੰਗਾ ਕਰ ਰਹੇ ਹੋ!"
+  }
+};
+
+let APP = {
+  lang: 'en',
+  user: null, // {id,role,class}
+  subjectsByClass: {},
+  topicsBySubject: {},
+  videos: {}, // video mapping per topic (src,label)
+  quizzes: {}, // quizzes per topic (10 q)
+  leaderboard: JSON.parse(localStorage.getItem('leaderboard')||'[]'), // array of {id,score}
+  doubts: JSON.parse(localStorage.getItem('doubts')||'[]'),
+  voiceOn: false,
+  ttsUtter: null,
+  quizState: { currentIndex:0, answers:[], questions:[] }
+};
+
+/* populate class select options */
+const classSelect = document.getElementById('selectClass');
+for(let c=1;c<=12;c++){
+  const opt = document.createElement('option'); opt.value=c; opt.innerText=`Class ${c}`; classSelect.appendChild(opt);
+}
+/* teacher helper selects */
+const teachClass = document.getElementById('teachClass');
+for(let c=1;c<=12;c++){ teachClass.appendChild(new Option(`Class ${c}`, c)); }
+
+/* Create default subjects (1-10 => 5 subjects, 11-12 => 6 ) */
+const five = ["Mathematics","English","Science","Hindi","EVS"];
+const six = ["Physics","Chemistry","Mathematics","Biology","English","Computer Science"];
+for(let c=1;c<=12;c++){
+  APP.subjectsByClass[c] = (c<=10)? [...five] : [...six];
+}
+
+/* Topics template: at least 5 topics per subject */
+function createDefaultTopics(){
+  const baseTopics = ["Introduction","Topic 1","Topic 2","Topic 3","Summary"];
+  for(const cls in APP.subjectsByClass){
+    const subs = APP.subjectsByClass[cls];
+    subs.forEach(sub=>{
+      const key = keyFor(cls, sub);
+      APP.topicsBySubject[key] = baseTopics.map((t,i)=> `${sub} - ${t}`);
+      // create sample videos for each topic; using public sample mp4 links
+      APP.videos[key] = baseTopics.map((t,i)=>({
+        title: `${sub} — ${t}`,
+        src: sampleVideo(i)
+      }));
+      // create default quiz for each topic: 10 sample Qs
+      APP.quizzes[key] = baseTopics.map((t,topicIndex)=> generateSampleQuiz(sub, topicIndex));
+    });
+  }
+}
+createDefaultTopics();
+
+/* helper to generate key */
+function keyFor(cls,sub){ return `C${cls}::${sub}`; }
+
+/* sample video provider (cycles few sample urls) */
+function sampleVideo(idx){
+  const samples = [
+    "https://www.w3schools.com/html/mov_bbb.mp4",
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    "https://www.w3schools.com/html/movie.mp4"
+  ];
+  return samples[idx % samples.length];
+}
+
+/* sample quiz generator - returns array of 10 q objects */
+function generateSampleQuiz(subject, topicIndex){
+  const qset = [];
+  // create 10 questions (some numeric / general)
+  for(let i=1;i<=10;i++){
+    const q = {
+      q: `${subject} Q${i} (Topic ${topicIndex+1}): What is ${i} + ${i}?`,
+      opts: [ `${i+i}`, `${i+i+1}`, `${i+i-1}`, `${i+i+2}` ],
+      correctIndex: 0
+    };
+    qset.push(q);
+  }
+  return qset;
+}
+
+/* -------------------------
+   Page Navigation & Animations
+   ------------------------- */
+function goTo(screenId){
+  // animate out current then show new
+  const active = document.querySelector('.screen.active');
+  if(active){
+    active.classList.add('animate-out');
+    setTimeout(()=>{ active.classList.remove('animate-out'); active.classList.remove('active'); document.getElementById(screenId).classList.add('active'); }, 220);
+  } else {
+    document.getElementById(screenId).classList.add('active');
+  }
+  // voice stop when navigating
+  stopVoice();
+}
+
+function goBack(screenId){
+  goTo(screenId);
+}
+
+/* -------------
+   Quote shuffle
+   ------------- */
+function toggleQuote(){
+  const list = i18n[APP.lang].quoteList;
+  const pick = list[Math.floor(Math.random()*list.length)];
+  document.getElementById('quoteText').innerText = pick;
+}
+
+/* -------------
+   Language & I18N
+   ------------- */
+function setLang(lang){
+  APP.lang = lang;
+  // small changes: header text
+  if(lang==='hi'){ document.querySelector('header').innerText = "🌾 डिजिटल लर्निंग प्लेटफ़ॉर्म — नाभा (प्रोटोटाइप)"; }
+  else if(lang==='pa'){ document.querySelector('header').innerText = "🌾 ਡਿਜਟਲ ਲਰਣਿੰਗ ਪਲੇਟਫਾਰਮ — ਨਭਾ (ਪ੍ਰੋਟੋਟਾਈਪ)"; }
+  else { document.querySelector('header').innerText = "🌾 Digital Learning Platform — Nabha"; }
+  // show login
+  goTo('screen-login');
+}
+
+/* -------------
+   Login flow
+   ------------- */
+function doLogin(){
+  const id = document.getElementById('inputId').value.trim() || prompt("Enter an ID (e.g. S001)");
+  const role = document.getElementById('selectRole').value;
+  const cls = document.getElementById('selectClass').value;
+  if(!id || !role || !cls){ alert("Please fill ID, role and class"); return; }
+  APP.user = { id, role, cls: Number(cls) };
+  // greet
+  if(role==='student'){
+    document.getElementById('studentWelcome').innerText = `Welcome, ${id}`;
+    document.getElementById('studentInfo').innerText = `Class ${cls} • Language: ${APP.lang.toUpperCase()}`;
+    populateSubjectsGrid(cls);
+    renderLeaderboardBox();
+    renderDoubts(); // show existing
+    goTo('screen-student');
+  } else if(role==='teacher'){
+    populateTeacherSelects();
+    goTo('screen-teacher');
+  } else {
+    goTo('screen-parent'); renderParentProgress();
+  }
+}
+
+/* -------------
+  Subjects & Topics
+  ------------- */
+function populateSubjectsGrid(cls){
+  const grid = document.getElementById('subjectGrid'); grid.innerHTML='';
+  const subs = APP.subjectsByClass[cls];
+  subs.forEach((s, i)=>{
+    const tile = document.createElement('div'); tile.className='tile card';
+    tile.innerHTML = `<div class="emoji">${emojiForClass(APP.user.cls)}</div><strong>${s}</strong><div class="small">${s} for Class ${cls}</div>`;
+    tile.onclick = ()=> openSubject(s);
+    grid.appendChild(tile);
+  });
+}
+
+/* emoji / cartoon selection for classes 1-8 */
+function emojiForClass(cls){
+  if(cls <= 8) return "🧸"; // friendly cartoon
+  return "📘";
+}
+
+function openSubject(sub){
+  // show topics list
+  const key = keyFor(APP.user.cls, sub);
+  const topics = APP.topicsBySubject[key] || [];
+  const topicsGrid = document.getElementById('topicsGrid'); topicsGrid.innerHTML='';
+  document.getElementById('topicTitle').innerText = `${sub} — Topics`;
+  topics.forEach((t, idx)=>{
+    const tile = document.createElement('div'); tile.className='tile';
+    tile.innerHTML = `<div style="font-size:20px"><strong>${t}</strong></div><div class="small">Tap to open</div>`;
+    tile.onclick = ()=> openTopic(sub, idx);
+    topicsGrid.appendChild(tile);
+  });
+  document.getElementById('topicsCard').style.display='block';
+  // scroll into view
+  goTo('screen-student');
+  // small animation to show topics area
+  setTimeout(()=> document.getElementById('topicsCard').scrollIntoView({behavior:'smooth'}),150);
+}
+
+/* -------------
+   Open a topic -> video page
+   ------------- */
+let currentTopicContext = null; // {class, subject, topicIndex}
+function openTopic(subject, topicIndex){
+  const cls = APP.user.cls;
+  const key = keyFor(cls, subject);
+  const videoObj = (APP.videos[key] && APP.videos[key][topicIndex]) || {title:`${subject} - Topic`, src: sampleVideo(topicIndex)};
+  currentTopicContext = { cls, subject, topicIndex, key };
+  document.getElementById('videoTitle').innerText = videoObj.title;
+  document.getElementById('videoMeta').innerText = `Class ${cls} • ${subject} • Topic ${topicIndex+1}`;
+  document.getElementById('playerSrc').src = videoObj.src;
+  const player = document.getElementById('player'); player.pause(); player.load();
+  goTo('screen-video');
+}
+
+/* -------------
+   Start Quiz (for current topic)
+   ------------- */
+function startQuiz(){
+  if(!currentTopicContext){ alert("Select a topic first"); return; }
+  const {key, topicIndex} = currentTopicContext;
+  const qs = (APP.quizzes[key] && APP.quizzes[key][topicIndex]) || generateSampleQuiz(currentTopicContext.subject, topicIndex);
+  // set quiz state
+  APP.quizState.questions = qs;
+  APP.quizState.currentIndex = 0;
+  APP.quizState.answers = new Array(qs.length).fill(null);
+  renderQuizPage(0);
+  goTo('screen-quiz');
+  speak(`Starting quiz. ${qs.length} questions. Question 1.`);
+}
+
+/* -------------
+   Render quiz pages (one question per slide)
+   ------------- */
+function renderQuizPage(index){
+  const container = document.getElementById('quizContainer'); container.innerHTML='';
+  const qs = APP.quizState.questions;
+  if(!qs || !qs.length) return;
+  const qObj = qs[index];
+
+  // question box
+  const qdiv = document.createElement('div'); qdiv.className='quiz-area';
+  qdiv.innerHTML = `<div class="question">Q${index+1}. ${qObj.q}</div>`;
+  const optsWrap = document.createElement('div'); optsWrap.className='options';
+  qObj.opts.forEach((o,optIndex)=>{
+    const op = document.createElement('div'); op.className='option'; op.innerText = o;
+    // set selected styling if previously chosen
+    if(APP.quizState.answers[index] === optIndex) op.classList.add('selected');
+    op.onclick = ()=> {
+      // clear previous selection for this index
+      APP.quizState.answers[index] = optIndex;
+      // style updates
+      optsWrap.querySelectorAll('.option').forEach((el,i)=> el.classList.toggle('selected', i===optIndex));
+      // when selecting, do not auto-move; wait for Next
+    };
+    optsWrap.appendChild(op);
+  });
+  qdiv.appendChild(optsWrap);
+
+  // progress & hint
+  const prog = document.createElement('div'); prog.className='small'; prog.style.marginTop='8px';
+  prog.innerText = `Question ${index+1} of ${qs.length}`;
+  qdiv.appendChild(prog);
+  container.appendChild(qdiv);
+
+  // update nav buttons
+  document.getElementById('quizPrev').style.display = (index===0)? 'none':'inline-block';
+  document.getElementById('quizNext').innerText = (index === qs.length-1)? 'Submit' : 'Next';
+  // voice
+  speak(qObj.q);
+}
+
+function quizNext(){
+  const idx = APP.quizState.currentIndex;
+  const qs = APP.quizState.questions;
+  // ensure an answer chosen (optional)
+  if(APP.quizState.answers[idx] === null){
+    if(!confirmChoice()){ return; }
+  }
+  if(idx < qs.length -1){
+    APP.quizState.currentIndex +=1; renderQuizPage(APP.quizState.currentIndex);
+  } else {
+    // submit
+    finalizeQuiz();
+  }
+}
+function quizPrev(){
+  if(APP.quizState.currentIndex > 0){
+    APP.quizState.currentIndex -=1; renderQuizPage(APP.quizState.currentIndex);
+  }
+}
+
+function confirmChoice(){
+  return confirm("You haven't selected an option. Do you want to continue without selecting?");
+}
+
+/* -------------
+   Finalize quiz & scoring
+   ------------- */
+function finalizeQuiz(){
+  const qs = APP.quizState.questions;
+  let score = 0;
+  qs.forEach((q,i)=>{
+    if(APP.quizState.answers[i] === q.correctIndex) score +=10;
+  });
+  alert(`Quiz submitted! Score: ${score} / ${qs.length*10}`);
+  // update leaderboard for user
+  const uid = APP.user.id;
+  let lb = APP.leaderboard;
+  let user = lb.find(u=>u.id===uid);
+  if(user){ user.score += score; } else { lb.push({id:uid, score}); }
+  APP.leaderboard = lb;
+  localStorage.setItem('leaderboard', JSON.stringify(lb));
+  renderLeaderboardBox();
+  renderLeaderboardScreen();
+  goTo('screen-leaderboard');
+  speak(`Quiz submitted. Your score is ${score} points. Well done!`);
+}
+
+/* -------------
+   Leaderboard render
+   ------------- */
+function renderLeaderboardBox(){
+  const box = document.getElementById('leaderboardBox'); box.innerHTML='';
+  let lb = JSON.parse(localStorage.getItem('leaderboard')||JSON.stringify(APP.leaderboard));
+  lb.sort((a,b)=>b.score-a.score);
+  if(!lb.length){ box.innerHTML = "<div class='small'>No leaderboard data yet.</div>"; return; }
+  const ol = document.createElement('ol');
+  lb.slice(0,6).forEach(item => {
+    const li = document.createElement('li'); li.innerText = `${item.id} — ${item.score} pts`;
+    ol.appendChild(li);
+  });
+  box.appendChild(ol);
+}
+
+function renderLeaderboardScreen(){
+  const div = document.getElementById('leaderboardList'); div.innerHTML='';
+  let lb = JSON.parse(localStorage.getItem('leaderboard')||JSON.stringify(APP.leaderboard));
+  lb.sort((a,b)=>b.score-a.score);
+  if(!lb.length){ div.innerHTML = "<div class='small'>No entries yet</div>"; return; }
+  const ol = document.createElement('ol');
+  lb.forEach(item => { const li = document.createElement('li'); li.innerText = `${item.id} — ${item.score} pts`; ol.appendChild(li); });
+  div.appendChild(ol);
+}
+
+/* -------------
+   Doubts handling
+   ------------- */
+function submitDoubt(){
+  const text = document.getElementById('doubtText').value.trim();
+  if(!text){ alert("Type your doubt first."); return; }
+  const user = APP.user ? APP.user.id : 'Anon';
+  APP.doubts.push({user, text, time:Date.now()});
+  localStorage.setItem('doubts', JSON.stringify(APP.doubts));
+  document.getElementById('doubtText').value = '';
+  renderDoubts();
+  alert("Doubt submitted — teachers will review (demo).");
+}
+
+function renderDoubts(){
+  const place = document.getElementById('doubtArea'); place.innerHTML='';
+  APP.doubts = JSON.parse(localStorage.getItem('doubts')||'[]');
+  APP.doubts.slice().reverse().forEach(d=>{
+    const p = document.createElement('p'); p.className='small';
+    p.innerHTML = `<b>${d.user}:</b> ${d.text}`;
+    place.appendChild(p);
+  });
+}
+
+/* -------------
+   Teacher actions (simulated storage)
+   ------------- */
+function populateTeacherSelects(){
+  // fill teacher subject based on class selection
+  const teachSub = document.getElementById('teachSubject'); teachSub.innerHTML='';
+  const cls = teachClass.value || APP.user?.cls || 1;
+  const subs = APP.subjectsByClass[cls] || [];
+  subs.forEach(s=> teachSub.appendChild(new Option(s,s)));
+}
+
+/* upload video (demo: we store meta only) */
+function teacherUpload(){
+  const file = document.getElementById('teachVideoFile').files[0];
+  const title = document.getElementById('teachVideoTitle').value || (file ? file.name : 'Video');
+  const cls = document.getElementById('teachClass').value;
+  const subject = document.getElementById('teachSubject').value;
+  if(!cls || !subject){ alert("Select class & subject"); return; }
+  // store meta in localStorage under videos
+  const key = keyFor(cls, subject);
+  const arr = APP.videos[key] || [];
+  // for demo we store a placeholder src (file local not uploaded), so use sampleVideo
+  arr.push({title, src: sampleVideo(Math.floor(Math.random()*3))});
+  APP.videos[key] = arr;
+  localStorage.setItem('videos', JSON.stringify(APP.videos));
+  document.getElementById('teacherMsg').innerText = "Video metadata saved (demo).";
+}
+
+/* teacher save quiz: append one question to that subject-topic's 10q set (demo) */
+function teacherSaveQuiz(){
+  const q = document.getElementById('quizQText').value.trim();
+  const A = document.getElementById('quizOptA').value.trim();
+  const B = document.getElementById('quizOptB').value.trim();
+  const C = document.getElementById('quizOptC').value.trim();
+  const D = document.getElementById('quizOptD').value.trim();
+  const correct = document.getElementById('quizCorrect').value;
+  if(!q||!A||!B||!C||!D||!correct){ alert("Fill all quiz fields"); return; }
+  // for demo, store under a sample key (teacher picks class & subject)
+  const cls = document.getElementById('teachClass').value || 1;
+  const subject = document.getElementById('teachSubject').value || APP.subjectsByClass[cls][0];
+  const key = keyFor(cls, subject);
+  // add to quizzes first topic's list (demo)
+  const qArr = (APP.quizzes[key] && APP.quizzes[key][0]) || [];
+  const obj = { q, opts:[A,B,C,D], correctIndex: {A:0,B:1,C:2,D:3}[correct] };
+  qArr.push(obj);
+  // ensure at least 10 per topic by trimming/padding later
+  if(!APP.quizzes[key]) APP.quizzes[key] = [];
+  if(!APP.quizzes[key][0]) APP.quizzes[key][0] = qArr;
+  localStorage.setItem('quizzes', JSON.stringify(APP.quizzes));
+  document.getElementById('teacherMsg').innerText = "Question added (demo).";
+}
+
+/* -------------
+   Parent progress screen
+   ------------- */
+function renderParentProgress(){
+  const p = document.getElementById('parentProgress'); p.innerHTML='';
+  // assume parent id format Pxxx; child id might be Sxxx (demo)
+  const pid = APP.user.id || "P001";
+  // demo: show top student results
+  let lb = JSON.parse(localStorage.getItem('leaderboard')||'[]');
+  if(!lb.length) p.innerText = "No activity yet.";
+  else{
+    p.innerHTML = "<b>Recent Scores:</b><br>";
+    lb.slice(0,6).forEach(x=> p.innerHTML += `${x.id} — ${x.score} pts<br>`);
+  }
+}
+
+/* -------------
+   Voice assistant (TTS)
+   ------------- */
+function toggleVoice(){
+  APP.voiceOn = !APP.voiceOn;
+  const btn = document.getElementById('voiceToggle');
+  if(APP.voiceOn){
+    btn.innerText = '🔊 Stop';
+    speakVisibleText();
+  } else {
+    btn.innerText = '🔈 Voice';
+    stopVoice();
+  }
+}
+function speakVisibleText(){
+  stopVoice();
+  // collect main visible screen text
+  const active = document.querySelector('.screen.active');
+  if(!active) return;
+  let text = active.innerText || active.textContent || '';
+  // limit length
+  if(text.length > 1000) text = text.slice(0,1000);
+  speak(text);
+}
+function speak(text){
+  stopVoice();
+  if(!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = (APP.lang==='hi')? 'hi-IN': (APP.lang==='pa'?'pa-IN':'en-US');
+  u.rate = 1; u.pitch = 1;
+  APP.ttsUtter = u;
+  speechSynthesis.speak(u);
+}
+function stopVoice(){
+  if(APP.ttsUtter) speechSynthesis.cancel();
+  APP.voiceOn = false;
+  const btn = document.getElementById('voiceToggle');
+  if(btn) btn.innerText = '🔈 Voice';
+}
+
+/* -------------
+   Utility / extras
+   ------------- */
+function downloadSample(){ alert("Download demo - replace with real video in production."); }
+
+function renderDoubts(){ /* called earlier */ renderDoubtsLocal(); }
+function renderDoubtsLocal(){
+  const place = document.getElementById('doubtArea'); place.innerHTML='';
+  const ds = JSON.parse(localStorage.getItem('doubts')||'[]');
+  ds.slice().reverse().forEach(d=>{
+    const p = document.createElement('p'); p.className='small';
+    p.innerHTML = `<b>${d.user}</b>: ${d.text}`;
+    place.appendChild(p);
+  });
+}
+function confirmExitQuiz(){ if(confirm("Quit quiz? Progress will be lost.")){ goTo('screen-student'); } }
+
+/* finalize init: load stored videos/quizzes (if teacher saved) */
+function initFromStorage(){
+  const vs = JSON.parse(localStorage.getItem('videos')||'null');
+  if(vs) APP.videos = vs;
+  const qs = JSON.parse(localStorage.getItem('quizzes')||'null');
+  if(qs) APP.quizzes = qs;
+  APP.leaderboard = JSON.parse(localStorage.getItem('leaderboard')||JSON.stringify(APP.leaderboard));
+  APP.doubts = JSON.parse(localStorage.getItem('doubts')||JSON.stringify(APP.doubts));
+  // fill teach subject for initial class
+  populateTeacherSelects();
+  renderLeaderboardBox();
+  renderDoubtsLocal();
+}
+initFromStorage();
+
+/* debug helper to pre-seed sample data */
+(function seedIfEmpty(){
+  if(!localStorage.getItem('leaderboard')){
+    const sample = [{id:'S101', score:40},{id:'S102', score:30}];
+    localStorage.setItem('leaderboard', JSON.stringify(sample));
+  }
+})();
+
+/* -------------
+   Small helpers: UI text replacements for languages (minimal)
+   ------------- */
+function translateUI(){
+  // This prototype uses static English labels for brevity.
+  // For full translation, you'd map all labels to i18n[APP.lang] keys and replace innerText accordingly.
+}
+
+/* -------------
+   Keyboard navigation: allow Enter to progress on quiz
+   ------------- */
+document.addEventListener('keydown',(e)=>{
+  if(document.querySelector('.screen.active')?.id === 'screen-quiz'){
+    if(e.key === 'Enter'){ quizNext(); }
+    if(e.key === 'ArrowLeft'){ quizPrev(); }
+    if(e.key === 'ArrowRight'){ quizNext(); }
+  }
+});
+</script>
+</body>
+</html>
